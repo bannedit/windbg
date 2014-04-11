@@ -77,12 +77,12 @@ class counterfeit():
 		start = address
 		end = address + self.size
 		vaddr = start
-		byte = ord('A')
+		dword = 0x41414141
 
 		while vaddr != end:
-			pykd.dbgCommand("eb %02x %08x" % (byte, vaddr))
-			byte += 1
-			vaddr += 1
+			pykd.dbgCommand("ed %08x %08x" % (dword, vaddr))
+			dword += 1
+			vaddr += 4
 
 def main():
 	desc = "counterfeit v1.0 - handy script to prototype exploitation of memory corruption and use-after-free vulnerabilities"
