@@ -13,6 +13,7 @@
 
 import pykd
 import argparse
+import struct
 from ctypes import *
 
 PROCESS_ALL_ACCESS     = (0x000F0000 | 0x00100000 | 0xFFF)
@@ -78,11 +79,21 @@ class counterfeit():
 		end = address + self.size
 		vaddr = start
 		dword = 0x41414141
-
-		while vaddr != end:
-			pykd.dbgCommand("ed %08x %08x" % (dword, vaddr))
+		written = c_int()
+		buf = ""
+		print "Filling memory..."
+		while vaddr < end:
+			buf += struct.pack('<L', dword)
 			dword += 1
 			vaddr += 4
+
+		vaddr = start
+		ret = kernel32.WriteProcessMemory(self.hprocess, vaddr, buf, len(buf), byref(written))
+		if not ret:
+			print "WriteProcessMemory failed"
+
+		print "Finished filling memory."
+		return written
 
 def main():
 	desc = "counterfeit v1.0 - handy script to prototype exploitation of memory corruption and use-after-free vulnerabilities"
@@ -96,13 +107,12 @@ def main():
 	args = parser.parse_args()
 	cf = counterfeit()
 	cf.banner()
-	print args
 
 	if args.alloc:
-		addr = cf.VirtualAllocEx(0, int(args.allocate, 16), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE)
+		addr = cf.VirtualAllocEx(0, int(args.alloc, 16), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE)
+		print "Allocated memory @ 0x%08x with RWX permissions." % addr
 		if args.fill:
 			cf.fill_pattern(addr)
-		print "Allocated memory @ 0x%08x with RWX permissions.\n" % addr
 		return
 
 	if args.protect:
@@ -120,13 +130,15 @@ def main():
 			flProtect = PAGE_NOACCESS
 
 		cf.VirtualProtectEx(int(address, 16), int(size, 16), flProtect, 0)
+		print "Changed permissions for memory @ 0x%08x to '%s'" % (int(address, 16), protection)
+
 		if args.fill:
 			cf.fill_pattern(int(address, 16))
-		print "Changed permissions for memory @ 0x%08x to '%s'\n" % (int(address, 16), protection)
 		return
 
 	if not args.alloc and not args.protect:
 		parser.print_help()
+	print "\n"
 
 if __name__ == "__main__":
 	main()
