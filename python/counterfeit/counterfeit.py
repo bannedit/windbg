@@ -70,7 +70,7 @@ class counterfeit():
 
 	def fill_pattern(self, address):
 		'''
-		Fill the memory with a pattern from 0x41 - (0x41 + dwSize).
+		Fill the memory with a pattern from 0x41414141 - (0x41414141 + dwSize).
 		dwSize represents the allocated size or the size given to
 		VirtualProtectEx.
 		'''
